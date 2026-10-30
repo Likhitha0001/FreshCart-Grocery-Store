@@ -15,6 +15,7 @@ public class Order {
     private Long id;
 
     private String customerName;
+    private String customerEmail;
     private String phone;
     private String address;
     private String city;
@@ -56,6 +57,14 @@ public class Order {
 
     public void setCustomerName(String customerName) {
         this.customerName = customerName;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
     }
 
     public String getPhone() {

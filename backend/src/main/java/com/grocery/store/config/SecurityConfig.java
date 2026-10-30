@@ -2,6 +2,7 @@
 package com.grocery.store.config;
 
 import com.grocery.store.security.JwtAuthenticationFilter;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -34,66 +35,89 @@ public class SecurityConfig {
 
         http
             .cors(Customizer.withDefaults())
+
             .csrf(csrf -> csrf.disable())
+
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
             .authorizeHttpRequests(auth -> auth
 
+                // User registration and login
                 .requestMatchers(
                     "/api/users/register",
                     "/api/users/login"
                 ).permitAll()
 
+                // Public product viewing
                 .requestMatchers(
                     HttpMethod.GET,
                     "/api/products",
                     "/api/products/**"
                 ).permitAll()
 
+                // Admin-only product creation
                 .requestMatchers(
                     HttpMethod.POST,
                     "/api/products",
                     "/api/products/**"
                 ).hasRole("ADMIN")
 
+                // Admin-only product updates
                 .requestMatchers(
                     HttpMethod.PUT,
                     "/api/products",
                     "/api/products/**"
                 ).hasRole("ADMIN")
 
+                // Admin-only product deletion
                 .requestMatchers(
                     HttpMethod.DELETE,
                     "/api/products",
                     "/api/products/**"
                 ).hasRole("ADMIN")
 
+                // Background job monitoring: Admin only
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/api/admin/background-job/status"
+                ).hasRole("ADMIN")
+
+                // Admin-only order listing
                 .requestMatchers(
                     HttpMethod.GET,
                     "/api/orders",
                     "/api/orders/"
                 ).hasRole("ADMIN")
 
+                // Other order endpoints require authentication
                 .requestMatchers(
                     HttpMethod.GET,
                     "/api/orders/**"
                 ).authenticated()
 
+                // Order creation and payment verification
                 .requestMatchers(
                     HttpMethod.POST,
                     "/api/orders",
                     "/api/orders/verify-payment"
                 ).authenticated()
 
+                // Admin-only user listing
                 .requestMatchers(
                     HttpMethod.GET,
                     "/api/users"
                 ).hasRole("ADMIN")
 
-                .requestMatchers("/api/users/**").authenticated()
+                // Other user endpoints require authentication
+                .requestMatchers(
+                    "/api/users/**"
+                ).authenticated()
 
+                // Everything else requires authentication
                 .anyRequest().authenticated()
             )
+
             .addFilterBefore(
                 jwtAuthenticationFilter,
                 UsernamePasswordAuthenticationFilter.class
@@ -109,6 +133,7 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+
         CorsConfiguration configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(List.of(
@@ -130,7 +155,7 @@ public class SecurityConfig {
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source =
-            new UrlBasedCorsConfigurationSource();
+                new UrlBasedCorsConfigurationSource();
 
         source.registerCorsConfiguration("/**", configuration);
 
