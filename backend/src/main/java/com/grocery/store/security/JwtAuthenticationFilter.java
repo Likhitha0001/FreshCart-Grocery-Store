@@ -3,10 +3,12 @@ package com.grocery.store.security;
 
 import com.grocery.store.entity.User;
 import com.grocery.store.repository.UserRepository;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,6 +33,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.userRepository = userRepository;
     }
 
+    // Skip JWT validation for public registration and login endpoints
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+
+        String path = request.getServletPath();
+
+        return path.equals("/api/users/register")
+                || path.equals("/api/users/login");
+    }
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -40,6 +52,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String header = request.getHeader("Authorization");
 
+        // Continue if no Bearer token is provided
         if (header == null || !header.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -49,22 +62,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String email = jwtService.extractEmail(token);
+
             Optional<User> optionalUser =
                     userRepository.findByEmail(email);
 
             if (optionalUser.isPresent()
                     && SecurityContextHolder.getContext()
-                    .getAuthentication() == null) {
+                            .getAuthentication() == null) {
 
                 User user = optionalUser.get();
 
                 if (jwtService.isTokenValid(token, user)) {
+
                     var authentication =
                             new UsernamePasswordAuthenticationToken(
                                     user.getEmail(),
                                     null,
-                                    List.of(new SimpleGrantedAuthority(
-                                            "ROLE_" + user.getRole()))
+                                    List.of(
+                                            new SimpleGrantedAuthority(
+                                                    "ROLE_" + user.getRole())
+                                    )
                             );
 
                     authentication.setDetails(
@@ -75,7 +92,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             .setAuthentication(authentication);
                 }
             }
+
         } catch (Exception exception) {
+
+            // Clear invalid authentication and let Spring Security
+            // apply the endpoint's authorization rules.
             SecurityContextHolder.clearContext();
         }
 

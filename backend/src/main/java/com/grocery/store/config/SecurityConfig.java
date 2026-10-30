@@ -34,20 +34,28 @@ public class SecurityConfig {
             throws Exception {
 
         http
+            // Enable CORS
             .cors(Customizer.withDefaults())
 
+            // REST APIs use JWT, so disable CSRF
             .csrf(csrf -> csrf.disable())
 
+            // Do not create HTTP sessions
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
+            // Authorization rules
             .authorizeHttpRequests(auth -> auth
 
-                // User registration and login
+                // Public registration and login
                 .requestMatchers(
+                    HttpMethod.POST,
                     "/api/users/register",
                     "/api/users/login"
                 ).permitAll()
+
+                // Allow error handling endpoint
+                .requestMatchers("/error").permitAll()
 
                 // Public product viewing
                 .requestMatchers(
@@ -77,7 +85,7 @@ public class SecurityConfig {
                     "/api/products/**"
                 ).hasRole("ADMIN")
 
-                // Background job monitoring: Admin only
+                // Admin-only background job monitoring
                 .requestMatchers(
                     HttpMethod.GET,
                     "/api/admin/background-job/status"
@@ -90,7 +98,7 @@ public class SecurityConfig {
                     "/api/orders/"
                 ).hasRole("ADMIN")
 
-                // Other order endpoints require authentication
+                // Other order viewing requires authentication
                 .requestMatchers(
                     HttpMethod.GET,
                     "/api/orders/**"
@@ -118,6 +126,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
 
+            // Add JWT authentication filter
             .addFilterBefore(
                 jwtAuthenticationFilter,
                 UsernamePasswordAuthenticationFilter.class
@@ -136,6 +145,7 @@ public class SecurityConfig {
 
         CorsConfiguration configuration = new CorsConfiguration();
 
+        // Local frontend development origins
         configuration.setAllowedOrigins(List.of(
             "http://localhost:5185",
             "http://localhost:5184",
